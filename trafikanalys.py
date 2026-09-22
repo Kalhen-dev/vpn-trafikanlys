@@ -34,20 +34,26 @@ def analyze_dns(file):
     rows = run_tshark(file, "dns.flags.response == 0", ["-e", "dns.qry.name"])
     if rows is None:
         return
-    unique = sorted(set(rows))
+    unique = sorted({
+        name.strip()
+        for row in rows
+        for name in row.split(",")
+        if name.strip()
+    })
     print(f"\n{file}")
-    print(f"{len(rows)} DNS requests in total")
-    print(f"{len(unique)} Unique domains")
+    print(f"{len(rows)} Packets containing DNS queries")
+    print(f"{len(unique)} Unique queried names")
     for d in unique:
         print(f" {d}")
 
 def analyze_http(file):
-    # Answers presence of unencrypted HTTP traffic per scenario
-    rows = run_tshark(file, "http.request", ["-e", "http.host", "-e", "http.request.uri"])
+    # FInd HTTP requests, excluding SSDP discovery traffic.
+    rows = run_tshark(file, "http.request and not ssdp", ["-e", "http.host", "-e", "http.request.uri"])
     if rows is None:
         return
+
     print(f"\n{file}")
-    print(f"{len(rows)} HTTP requests in total:")
+    print(f"{len(rows)} Packets containing HTTP requests (excluding SSDP)")
     for r in rows:
         print(f" {r}")
 
